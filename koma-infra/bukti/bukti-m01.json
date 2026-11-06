@@ -1,0 +1,102 @@
+{
+  "skema": "koma-bukti/3",
+  "versi_koma": "3.2.0",
+  "nim": "12345678",
+  "kelompok": "k00",
+  "region": "ap-southeast-2",
+  "akun_sidik": "88ad5ca765627ae1",
+  "modul": "m01",
+  "dibuat": "2026-11-06T12:53:30Z",
+  "sumber": "lokal",
+  "hasil": [
+    {
+      "id": "instance_ada",
+      "lulus": false,
+      "pesan": "0 instance bertag nim=12345678, modul=m01"
+    },
+    {
+      "id": "dikelola_kode",
+      "lulus": false,
+      "pesan": "semua instance bertag managed-by=opentofu"
+    },
+    {
+      "id": "tag_pemilik",
+      "lulus": false,
+      "pesan": "tag nim=12345678 dan kelompok=k00"
+    },
+    {
+      "id": "preset_valid",
+      "lulus": false,
+      "pesan": "tipe instance t3.micro (kecil) atau t3.small (sedang)"
+    },
+    {
+      "id": "nama_konvensi",
+      "lulus": false,
+      "pesan": "tag Name berbentuk koma-12345678-m01-<kunci>"
+    },
+    {
+      "id": "berjalan",
+      "lulus": false,
+      "pesan": "state running"
+    },
+    {
+      "id": "tanpa_ip_publik",
+      "lulus": false,
+      "pesan": "tidak ada IP publik"
+    },
+    {
+      "id": "anggaran_ada",
+      "lulus": false,
+      "pesan": "budget koma-12345678-anggaran belum ada atau batasnya > USD 50 (apply stacks/m00-fondasi)"
+    },
+    {
+      "id": "dua_peran",
+      "lulus": false,
+      "pesan": "peran berbeda: []"
+    },
+    {
+      "id": "tanpa_instance_liar",
+      "lulus": false,
+      "pesan": "instance di luar kode masih hidup: i-0088544857780fdc3, i-0185bfa352fb8dfe4"
+    },
+    {
+      "id": "refaktor_tanpa_ganti",
+      "lulus": false,
+      "pesan": "instance lama dipertahankan saat for_each menambah instance baru (blok moved)"
+    },
+    {
+      "id": "reproducible",
+      "lulus": false,
+      "pesan": "dua potret dengan konfigurasi identik tetapi id instance berbeda"
+    },
+    {
+      "id": "bersih_akhir",
+      "lulus": false,
+      "pesan": "potret terakhir: tidak ada instance m01 (sudah destroy)"
+    }
+  ],
+  "ringkasan": {
+    "latihan_lulus": false,
+    "tugas_lulus": false,
+    "skor_latihan": 0.0
+  },
+  "riwayat": [
+    {
+      "waktu": "2026-11-06T12:53:30Z",
+      "aktif": false,
+      "instance": {},
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "preset_valid": false,
+        "nama_konvensi": false,
+        "berjalan": false,
+        "tanpa_ip_publik": false,
+        "anggaran_ada": false,
+        "dua_peran": false
+      }
+    }
+  ],
+  "tanda_tangan": null
+}
