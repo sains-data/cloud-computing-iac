@@ -23,4 +23,32 @@ variable "region" {
 }
 
 # TODO Bagian C: tambahkan variabel `layanan` (map(object({ peran, ukuran, os })))
-# beserta validasinya. Lihat naskah Modul 01, C.2.
+variable "layanan" {
+  description = "Katalog server sandbox: kunci = nama pendek, nilai = peran, ukuran preset, dan OS"
+  type = map(object({
+    peran  = string
+    ukuran = string
+    os     = optional(string, "al2023")
+  }))
+  default = {
+    web = { peran = "web", ukuran = "kecil" }
+    api = { peran = "api", ukuran = "kecil" }
+  }
+
+  validation {
+    condition     = alltrue([for k in keys(var.layanan) : can(regex("^[a-z][a-z0-9-]{1,19}$", k))])
+    error_message = "Kunci layanan: huruf kecil, angka, dan tanda hubung, 2-20 karakter."
+  }
+  validation {
+    condition     = alltrue([for l in values(var.layanan) : contains(["kecil", "sedang"], l.ukuran)])
+    error_message = "Ukuran hanya boleh kecil (t3.micro) atau sedang (t3.small)."
+  }
+  validation {
+    condition     = alltrue([for l in values(var.layanan) : contains(["web", "api", "worker", "db"], l.peran)])
+    error_message = "Peran hanya boleh web, api, worker, atau db."
+  }
+  validation {
+    condition     = alltrue([for l in values(var.layanan) : contains(["al2023", "debian12"], l.os)])
+    error_message = "OS hanya boleh al2023 atau debian12."
+  }
+}
