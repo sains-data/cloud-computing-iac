@@ -10,8 +10,24 @@ data "aws_ami" "al2023" {
 }
 
 # TODO Bagian B: satu server `aws_instance.web`
-#   - ami dari data.aws_ami.al2023
-#   - instance_type "t3.micro"
-#   - tanpa IP publik
-#   - IMDSv2 wajib (metadata_options)
-#   - tag Name = "koma-${var.nim}-m01-web" dan peran = "web"
+resource "aws_instance" "web" {
+  ami                         = data.aws_ami.al2023.id
+  instance_type               = "t3.micro"
+  associate_public_ip_address = false
+
+  metadata_options {
+    http_tokens = "required" # IMDSv2
+  }
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 8
+    encrypted   = true
+  }
+
+  tags = {
+    Name   = "koma-${var.nim}-m01-web"
+    peran  = "web"
+    ukuran = "kecil"
+  }
+}

@@ -6,7 +6,7 @@
   "region": "ap-southeast-2",
   "akun_sidik": "88ad5ca765627ae1",
   "modul": "m01",
-  "dibuat": "2026-11-06T12:53:30Z",
+  "dibuat": "2026-11-06T15:58:28Z",
   "sumber": "lokal",
   "hasil": [
     {
@@ -56,8 +56,8 @@
     },
     {
       "id": "tanpa_instance_liar",
-      "lulus": false,
-      "pesan": "instance di luar kode masih hidup: i-0088544857780fdc3, i-0185bfa352fb8dfe4"
+      "lulus": true,
+      "pesan": "tidak ada instance tanpa tag managed-by"
     },
     {
       "id": "refaktor_tanpa_ganti",
@@ -83,6 +83,22 @@
   "riwayat": [
     {
       "waktu": "2026-11-06T12:53:30Z",
+      "aktif": false,
+      "instance": {},
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "preset_valid": false,
+        "nama_konvensi": false,
+        "berjalan": false,
+        "tanpa_ip_publik": false,
+        "anggaran_ada": false,
+        "dua_peran": false
+      }
+    },
+    {
+      "waktu": "2026-11-06T15:58:28Z",
       "aktif": false,
       "instance": {},
       "cek": {
