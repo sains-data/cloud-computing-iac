@@ -1,0 +1,25 @@
+# Direktori kerja OpenTofu (provider hasil unduhan)
+.terraform/
+
+# State dan cadangannya berisi detail akun Anda: jangan di-commit.
+# Mulai Modul 04 state dipindah ke backend S3.
+*.tfstate
+*.tfstate.*
+
+# Nilai variabel milik Anda sendiri (NIM, e-mail, IP)
+terraform.tfvars
+*.auto.tfvars
+
+# Berkas plan (bisa memuat nilai rahasia) dan log crash
+*.tfplan
+*.plan
+*.plan.json
+crash.log
+crash.*.log
+
+# Identitas lokal koma dan arsip yang dibuat koma arsip
+.koma/
+*.zip
+
+# Python
+__pycache__/
