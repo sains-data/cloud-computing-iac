@@ -102,4 +102,19 @@ resource "aws_instance" "api" {
   }
 }
 
+output "url_api" {
+  value = "http://${aws_instance.api.public_ip}"
+}
+
+output "ami" {
+  value = {
+    id   = aws_ami_from_instance.api.id
+    nama = aws_ami_from_instance.api.name
+  }
+}
+
+output "versi" {
+  value = var.versi
+}
+
 # Latihan 2.1: aws_instance.goreng (count = var.bandingkan_goreng ? 1 : 0)

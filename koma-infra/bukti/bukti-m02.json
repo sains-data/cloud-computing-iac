@@ -1,0 +1,126 @@
+{
+  "skema": "koma-bukti/3",
+  "versi_koma": "3.6.1",
+  "nim": "12345678",
+  "kelompok": "k00",
+  "region": "ap-southeast-2",
+  "akun_sidik": "88ad5ca765627ae1",
+  "modul": "m02",
+  "dibuat": "2026-11-07T18:08:01Z",
+  "sumber": "lokal",
+  "hasil": [
+    {
+      "id": "instance_ada",
+      "lulus": false,
+      "pesan": "0 instance peran=api bertag modul=m02"
+    },
+    {
+      "id": "dikelola_kode",
+      "lulus": false,
+      "pesan": "semua instance m02 bertag managed-by=opentofu"
+    },
+    {
+      "id": "tag_pemilik",
+      "lulus": false,
+      "pesan": "tag nim=12345678 dan kelompok=k00"
+    },
+    {
+      "id": "image_terbit",
+      "lulus": false,
+      "pesan": "AMI milik sendiri: belum ada"
+    },
+    {
+      "id": "api_dari_image",
+      "lulus": false,
+      "pesan": "instance api diluncurkan dari AMI m02 milik sendiri"
+    },
+    {
+      "id": "api_sehat",
+      "lulus": false,
+      "pesan": "belum ada instance api"
+    },
+    {
+      "id": "pembangun_dari_publik",
+      "lulus": false,
+      "pesan": "instance pembangun memakai AMI publik (Amazon Linux 2023) + cloud-init"
+    },
+    {
+      "id": "versi_cocok",
+      "lulus": false,
+      "pesan": "versi dari /versi sama dengan tag versi instance api"
+    },
+    {
+      "id": "sg_terbatas",
+      "lulus": false,
+      "pesan": "belum ada instance api"
+    },
+    {
+      "id": "nama_konvensi",
+      "lulus": false,
+      "pesan": "Name instance dan nama AMI diawali koma-12345678-m02-"
+    },
+    {
+      "id": "tanpa_instance_liar",
+      "lulus": true,
+      "pesan": "tidak ada instance tanpa tag managed-by"
+    },
+    {
+      "id": "immutable",
+      "lulus": false,
+      "pesan": "versi baru = instance api baru (bukan diubah di tempat)"
+    },
+    {
+      "id": "bersih_akhir",
+      "lulus": false,
+      "pesan": "potret terakhir: tanpa instance, AMI, dan snapshot sisa m02"
+    }
+  ],
+  "ringkasan": {
+    "latihan_lulus": false,
+    "tugas_lulus": false,
+    "skor_latihan": 0.0
+  },
+  "riwayat": [
+    {
+      "waktu": "2026-11-07T18:04:53Z",
+      "aktif": false,
+      "instance": {},
+      "image": [],
+      "api": null,
+      "yatim": 0,
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "image_terbit": false,
+        "api_dari_image": false,
+        "api_sehat": false,
+        "pembangun_dari_publik": false,
+        "versi_cocok": false,
+        "sg_terbatas": false,
+        "nama_konvensi": false
+      }
+    },
+    {
+      "waktu": "2026-11-07T18:08:01Z",
+      "aktif": false,
+      "instance": {},
+      "image": [],
+      "api": null,
+      "yatim": 0,
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "image_terbit": false,
+        "api_dari_image": false,
+        "api_sehat": false,
+        "pembangun_dari_publik": false,
+        "versi_cocok": false,
+        "sg_terbatas": false,
+        "nama_konvensi": false
+      }
+    }
+  ],
+  "tanda_tangan": null
+}
