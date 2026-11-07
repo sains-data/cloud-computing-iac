@@ -12,7 +12,7 @@ import importlib
 import re
 from types import ModuleType
 
-TERSEDIA = ("m01", "m02", "m03", "m04")
+TERSEDIA = ("m01", "m02", "m03", "m04", "m05", "m06", "m07", "m08")
 
 
 def muat(nama: str) -> ModuleType:

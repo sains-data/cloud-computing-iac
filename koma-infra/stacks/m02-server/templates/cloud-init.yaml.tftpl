@@ -1,0 +1,31 @@
+#cloud-config
+# Dipakai pembangun (dipanggang ke AMI) dan server goreng Latihan 2.1.
+write_files:
+  - path: /opt/koma/koma_api.py
+    permissions: "0755"
+    encoding: gz+b64
+    content: ${aplikasi_gz}
+  - path: /etc/koma/koma.env
+    permissions: "0644"
+    content: |
+      KOMA_VERSI=${versi}
+      KOMA_PERAN=api
+  - path: /etc/systemd/system/koma-api.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=koma-api ${versi}
+      After=network-online.target
+
+      [Service]
+      EnvironmentFile=/etc/koma/koma.env
+      ExecStart=/usr/bin/python3 /opt/koma/koma_api.py --port 80
+      DynamicUser=yes
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+runcmd:
+  - systemctl daemon-reload
+  - systemctl enable --now koma-api.service

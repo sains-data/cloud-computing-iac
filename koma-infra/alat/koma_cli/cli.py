@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import re
 import shutil
@@ -14,7 +15,7 @@ import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
 
-from . import VERSI, bukti, kumpul
+from . import VERSI, bukti, kumpul, legacy, ukur
 from .awsapi import AwsCli, GalatAws
 from .modul import TERSEDIA, muat
 from .umum import sekarang
@@ -194,7 +195,10 @@ def cmd_cek(a) -> int:
     _cetak(f"NIM {ident['nim']}, kelompok {ident['kelompok']}, region {ident['region']}")
     path = AKAR / "bukti" / f"bukti-{mod.MODUL}.json"
     if remote:
-        laporan = mod.laporan_klien(api, ident) if hasattr(mod, "laporan_klien") else {}
+        laporan = {}
+        if hasattr(mod, "laporan_klien"):
+            ekstra = {"akar": AKAR} if "akar" in inspect.signature(mod.laporan_klien).parameters else {}
+            laporan = mod.laporan_klien(api, ident, **ekstra)
         dok = _kirim_verifier(ident, mod, laporan)
         hasil, riwayat, ringkasan, waktu = dok["hasil"], dok["riwayat"], dok["ringkasan"], dok["dibuat"]
     else:
@@ -258,6 +262,10 @@ def cmd_sisa(a) -> int:
     _cetak(f"Instance tanpa tag managed-by: {len(s['liar'])}")
     for i in s["liar"]:
         _cetak(f"  {i['id']} {i['nama']} ({i['state']})")
+    if s.get("kunci_menunggu"):
+        _cetak(f"Kunci KMS menunggu dihapus (tidak ditagih, hilang sendiri): {len(s['kunci_menunggu'])}")
+        for x in s["kunci_menunggu"]:
+            _cetak(f"  {x}")
     _cetak(f"Snapshot sisa AMI: {len(s['snapshot_yatim'])}")
     for x in s["snapshot_yatim"]:
         _cetak(f"  {x}")
@@ -283,12 +291,158 @@ def cmd_arsip(a) -> int:
     _git("archive", "--format=zip", f"--prefix=koma-module-{nn}/", "-o", str(keluar), tag, "--", *ada)
     with zipfile.ZipFile(keluar) as zf:
         nama = zf.namelist()
-    terlarang = [n for n in nama if re.search(r"(\.tfstate|terraform\.tfvars$|/\.terraform/|\.koma/)", n)]
+    terlarang = [n for n in nama if re.search(r"(\.tfstate|terraform\.tfvars$|/\.terraform/|\.koma/|\.tfplan$|\.plan\.json$|kunci-state|/impor\.tf$)", n)]
     if terlarang:
         keluar.unlink()
         raise Galat("Arsip dibatalkan: berkas terlarang ter-commit: " + ", ".join(terlarang))
     _cetak(f"Arsip {keluar.name}: {len(nama)} entri dari tag {tag}. Unggah berkas ini ke Tugas Modul {nn}.")
     return 0
+
+
+def _tulis_koma(nama: str, isi: dict) -> Path:
+    path = AKAR / ".koma" / nama
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({**isi, "waktu": sekarang()}, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def cmd_legacy(a) -> int:
+    api, ident = _api_dan_ident()
+    if a.aksi == "buat":
+        cidr = f"{kumpul.ip_publik()}/32"
+        _cetak(f"Membuat server legacy {legacy.nama(ident)} lewat AWS CLI (HTTP 80 dari {cidr}) ...")
+        ada = legacy.buat(api, ident, cidr, legacy.baca_aplikasi(AKAR))
+    elif a.aksi == "hapus":
+        ada = legacy.hapus(api, ident)
+        _cetak(f"Dihapus: instance {ada['instance'] or '-'}, SG {ada['sg'] or '-'}")
+        return 0
+    else:
+        ada = legacy.cari(api, ident)
+    if not ada["instance"] and not ada["sg"]:
+        _cetak("Legacy belum ada. Jalankan: koma legacy buat")
+        return 1
+    _cetak(f"Server legacy   : {ada['instance'] or '-'} ({ada['state'] or '-'}), IP publik {ada['ip'] or '-'}")
+    _cetak(f"Security group  : {ada['sg'] or '-'}")
+    _cetak(f"Aturan HTTP 80  : {ada['aturan'] or '-'} dari {ada['cidr'] or '-'}")
+    _cetak(f"Dikelola kode   : {'ya' if ada['dikelola'] else 'belum (belum diimpor)'}")
+    _cetak("ID di atas dipakai blok import (Bagian B); cidr_saya harus sama dengan sumber aturan HTTP 80.")
+    return 0
+
+
+def cmd_probe(a) -> int:
+    url = a.url if a.url.startswith("http") else "http://" + a.url
+    _cetak(f"Probe GET {url}/versi tiap {a.selang} dtk selama {a.detik:.0f} dtk (Ctrl+C untuk berhenti) ...")
+    try:
+        hasil = ukur.probe(url, a.detik, a.selang, cetak=_cetak)
+    except KeyboardInterrupt:
+        _cetak("Dihentikan.")
+        return 1
+    path = _tulis_koma(f"probe-{a.modul}.json", {"url": url, **hasil})
+    _cetak(f"Sampel {hasil['sampel']}, gagal {hasil['gagal']}, jeda terpanjang {hasil['jeda_terpanjang_detik']} dtk, "
+           f"versi {hasil['versi']}, alih pada detik {hasil['alih_pada_detik']}")
+    _cetak(f"Ringkasan: {path.relative_to(AKAR)} (ikut koma cek sebagai laporan_klien)")
+    return 0
+
+
+def cmd_beban(a) -> int:
+    url = a.url if a.url.startswith("http") else "http://" + a.url
+    _cetak(f"Beban GET {url}{a.jalur} dengan {a.paralel} pekerja selama {a.detik:.0f} dtk ...")
+    hasil = ukur.beban(url, a.jalur, a.detik, a.paralel)
+    path = _tulis_koma(f"beban-{a.modul}.json", {"url": url, "jalur": a.jalur, **hasil})
+    _cetak(f"Permintaan {hasil['permintaan']}, gagal {hasil['gagal']}, p50 {hasil['p50_ms']} ms, p95 {hasil['p95_ms']} ms")
+    _cetak(f"Ringkasan: {path.relative_to(AKAR)}")
+    return 0
+
+
+def cmd_kirim(a) -> int:
+    api, ident = _api_dan_ident()
+    nama = f"koma-{ident['nim']}-m07-{a.lingkungan}-pesanan"
+    topik = next((t for t in kumpul.topik_awalan(api, nama) if t["nama"] == nama), None)
+    if not topik:
+        raise Galat(f"Topik {nama} belum ada. Terapkan stack m07-integrasi untuk lingkungan {a.lingkungan} dulu.")
+    cap = time.strftime("%Y%m%d%H%M%S", time.gmtime())
+    gerai = ("G-01", "G-02", "G-03", "G-04")
+    pesan = [{"id_pesanan": f"P-{cap}-{i:03d}", "gerai": gerai[i % len(gerai)], "total": 25000 + 1500 * i,
+              "dibuat": sekarang()} for i in range(1, a.jumlah + 1)]
+    pesan += [{"gerai": "G-99", "total": 0, "dibuat": sekarang(), "catatan": "sengaja rusak: tanpa id_pesanan"}
+              for _ in range(a.rusak)]
+    terkirim = []
+    for p in pesan:
+        r = api.panggil("sns", "publish", "--topic-arn", topik["arn"], "--message", json.dumps(p))
+        terkirim.append({"id_pesanan": p.get("id_pesanan"), "message_id": r.get("MessageId")})
+    _cetak(f"Terkirim ke {nama}: {a.jumlah} pesanan sah, {a.rusak} pesan rusak.")
+    for t in terkirim:
+        _cetak(f"  {t['id_pesanan'] or '(rusak)':<24} {t['message_id']}")
+    path = _tulis_koma("kirim-m07.json", {"lingkungan": a.lingkungan, "sah": a.jumlah, "rusak": a.rusak,
+                                         "pesan": terkirim})
+    _cetak(f"Ringkasan: {path.relative_to(AKAR)}. Objek muncul di arsip/<tanggal>/ dalam beberapa detik;"
+           " pesan rusak kembali ke antrean tiap 30 detik (prod: pindah ke DLQ setelah 3 kali).")
+    return 0
+
+
+def _jenis_arn(arn: str) -> str:
+    """arn:aws:lambda:…:function:x -> lambda/function; arn:aws:sns:…:x -> sns; arn:aws:s3:::b -> s3."""
+    bagian = arn.split(":", 5)
+    if len(bagian) < 6:
+        return arn
+    sisa = bagian[5]
+    if ":" in sisa:
+        return f"{bagian[2]}/{sisa.split(':', 1)[0]}"
+    if "/" in sisa:
+        return f"{bagian[2]}/{sisa.split('/', 1)[0]}"
+    return bagian[2]
+
+
+def cmd_showback(a) -> int:
+    api, ident = _api_dan_ident()
+    r = api.panggil("resourcegroupstaggingapi", "get-resources", "--tag-filters", f"Key=nim,Values={ident['nim']}")
+    baris: dict[tuple, dict[str, int]] = {}
+    tanpa = []
+    for x in r.get("ResourceTagMappingList", []):
+        tags = {t["Key"]: t["Value"] for t in x.get("Tags", [])}
+        if a.modul != "semua" and tags.get("modul") != a.modul:
+            continue
+        arn = x.get("ResourceARN", "")
+        jenis = _jenis_arn(arn)
+        if not tags.get("cost-center"):
+            tanpa.append(f"{arn} (modul {tags.get('modul', '-')})")
+            continue
+        kunci = (tags.get("lingkungan", "-"), tags["cost-center"], tags.get("data-class", "-"))
+        baris.setdefault(kunci, {})
+        baris[kunci][jenis] = baris[kunci].get(jenis, 0) + 1
+    _cetak(f"Showback NIM {ident['nim']}, modul {a.modul} (Resource Groups Tagging API; role IAM tidak terbaca)")
+    _cetak(f"{'lingkungan':<11}{'cost-center':<13}{'data-class':<12}resource")
+    for (env, cc, kelas), isi in sorted(baris.items()):
+        _cetak(f"{env:<11}{cc:<13}{kelas:<12}" + ", ".join(f"{n} {j}" for j, n in sorted(isi.items())))
+    _cetak(f"Tak bertuan (tanpa cost-center): {len(tanpa)}")
+    for x in tanpa:
+        _cetak(f"  {x}")
+    return 0
+
+
+def cmd_pesan(a) -> int:
+    url = (a.url if a.url.startswith("http") else "http://" + a.url).rstrip("/")
+    gerai = ("G-01", "G-02", "G-03", "G-04")
+    hasil_kirim = []
+    for i in range(1, a.jumlah + 1):
+        badan = json.dumps({"gerai": gerai[i % len(gerai)], "total": 25000 + 1500 * i}).encode()
+        req = urllib.request.Request(url + "/pesanan", data=badan, method="POST",
+                                     headers={"content-type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310 (ALB milik sendiri)
+                isi = json.loads(r.read().decode())
+                hasil_kirim.append({"kode": r.status, "id_pesanan": isi.get("id_pesanan"), "versi": isi.get("versi")})
+        except urllib.error.HTTPError as exc:
+            hasil_kirim.append({"kode": exc.code, "galat": exc.read().decode(errors="replace")[:200]})
+        except (urllib.error.URLError, OSError) as exc:
+            hasil_kirim.append({"kode": None, "galat": str(exc)})
+    for h in hasil_kirim:
+        _cetak(f"  {h['kode']}  {h.get('id_pesanan') or h.get('galat')}  {h.get('versi') or ''}")
+    sukses = sum(1 for h in hasil_kirim if h["kode"] == 202)
+    path = _tulis_koma(f"pesan-{a.modul}.json", {"url": url, "terkirim": sukses, "gagal": len(hasil_kirim) - sukses,
+                                                "pesan": hasil_kirim})
+    _cetak(f"Diterima layanan: {sukses} dari {len(hasil_kirim)}. Ringkasan: {path.relative_to(AKAR)}")
+    return 0 if sukses == len(hasil_kirim) else 1
 
 
 def buat_parser() -> argparse.ArgumentParser:
@@ -317,6 +471,35 @@ def buat_parser() -> argparse.ArgumentParser:
     p.add_argument("--tunggu", type=float, default=300)
     p.set_defaults(fn=cmd_sehat)
     sub.add_parser("sisa", help="resource praktikum yang masih ada").set_defaults(fn=cmd_sisa)
+    p = sub.add_parser("legacy", help="M06: buat, lihat, atau hapus server legacy (dibuat lewat AWS CLI)")
+    p.add_argument("aksi", choices=["buat", "info", "hapus"])
+    p.set_defaults(fn=cmd_legacy)
+    p = sub.add_parser("probe", help="M06: GET <url>/versi berkala, ukur jeda terpanjang saat alih versi")
+    p.add_argument("url")
+    p.add_argument("--detik", type=float, default=120)
+    p.add_argument("--selang", type=float, default=0.5)
+    p.add_argument("--modul", default="m06")
+    p.set_defaults(fn=cmd_probe)
+    p = sub.add_parser("beban", help="M06: beban paralel ke <url><jalur> untuk menguji alarm latensi")
+    p.add_argument("url")
+    p.add_argument("--jalur", default="/lambat?ms=500")
+    p.add_argument("--detik", type=float, default=180)
+    p.add_argument("--paralel", type=int, default=4)
+    p.add_argument("--modul", default="m06")
+    p.set_defaults(fn=cmd_beban)
+    p = sub.add_parser("kirim", help="M07: terbitkan pesanan sintetis ke topik lingkungan dev/prod")
+    p.add_argument("lingkungan", choices=["dev", "prod"])
+    p.add_argument("--jumlah", type=int, default=5)
+    p.add_argument("--rusak", type=int, default=0, help="tambah N pesan tanpa id_pesanan (berakhir di DLQ prod)")
+    p.set_defaults(fn=cmd_kirim)
+    p = sub.add_parser("showback", help="M07: resource bertag dikelompokkan per lingkungan dan cost-center")
+    p.add_argument("modul", nargs="?", default="m07", help="modul (bawaan m07) atau 'semua'")
+    p.set_defaults(fn=cmd_showback)
+    p = sub.add_parser("pesan", help="M08: kirim pesanan sintetis ke <url>/pesanan (API di ECS)")
+    p.add_argument("url")
+    p.add_argument("--jumlah", type=int, default=5)
+    p.add_argument("--modul", default="m08")
+    p.set_defaults(fn=cmd_pesan)
     p = sub.add_parser("arsip", help="buat koma-module-NN.zip dari tag mNN")
     p.add_argument("modul")
     p.set_defaults(fn=cmd_arsip)

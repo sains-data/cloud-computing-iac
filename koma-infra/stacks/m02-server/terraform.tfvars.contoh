@@ -1,0 +1,4 @@
+nim       = "121450001"
+kelompok  = "k03"
+versi     = "2.0.0"
+cidr_saya = "36.70.1.2/32" # ganti dengan keluaran `koma ip`

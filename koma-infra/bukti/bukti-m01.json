@@ -6,7 +6,7 @@
   "region": "ap-southeast-2",
   "akun_sidik": "88ad5ca765627ae1",
   "modul": "m01",
-  "dibuat": "2026-11-06T15:58:28Z",
+  "dibuat": "2026-11-06T16:27:18Z",
   "sumber": "lokal",
   "hasil": [
     {
@@ -99,6 +99,38 @@
     },
     {
       "waktu": "2026-11-06T15:58:28Z",
+      "aktif": false,
+      "instance": {},
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "preset_valid": false,
+        "nama_konvensi": false,
+        "berjalan": false,
+        "tanpa_ip_publik": false,
+        "anggaran_ada": false,
+        "dua_peran": false
+      }
+    },
+    {
+      "waktu": "2026-11-06T16:07:27Z",
+      "aktif": false,
+      "instance": {},
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "preset_valid": false,
+        "nama_konvensi": false,
+        "berjalan": false,
+        "tanpa_ip_publik": false,
+        "anggaran_ada": false,
+        "dua_peran": false
+      }
+    },
+    {
+      "waktu": "2026-11-06T16:27:18Z",
       "aktif": false,
       "instance": {},
       "cek": {

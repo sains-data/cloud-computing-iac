@@ -6,6 +6,8 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
+from pathlib import Path
 from typing import Any
 
 
@@ -37,3 +39,11 @@ class AwsCli:
             raise GalatAws(f"aws {' '.join(args[:2])}: {ringkas}")
         keluar = p.stdout.strip()
         return json.loads(keluar) if keluar else {}
+
+    def baca_awal(self, bucket: str, key: str, n: int) -> bytes:
+        """n byte pertama objek S3 (Range), tanpa mengunduh seluruh isinya."""
+        with tempfile.TemporaryDirectory(prefix="koma-") as d:
+            tujuan = Path(d) / "awal"
+            self.panggil("s3api", "get-object", "--bucket", bucket, "--key", key,
+                         "--range", f"bytes=0-{n - 1}", str(tujuan))
+            return tujuan.read_bytes()[:n]

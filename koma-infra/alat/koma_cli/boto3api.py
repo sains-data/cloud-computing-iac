@@ -13,22 +13,38 @@ from typing import Any
 from .awsapi import GalatAws
 
 #: parameter yang menerima daftar
-DAFTAR = {"Filters", "Filter", "Owners", "OwnerIds", "GroupIds", "TagFilters", "Names", "InstanceIds"}
+DAFTAR = {"Filters", "Filter", "Owners", "OwnerIds", "GroupIds", "TagFilters", "Names", "InstanceIds",
+          "ResourceTypeFilters", "AttributeNames", "RepositoryNames", "Clusters", "Services", "ResourceIds"}
+#: nama parameter boto3 yang tidak mengikuti pola kapitalisasi flag CLI
+NAMA_KHUSUS = {"OpenIdConnectProviderArn": "OpenIDConnectProviderArn"}
 #: layanan global yang harus dipanggil di us-east-1
 GLOBAL = {"budgets": "us-east-1"}
 #: nama layanan AWS CLI -> nama klien boto3
 KLIEN = {"s3api": "s3"}
+#: layanan yang nama parameternya lowerCamelCase (logGroupName, bukan LogGroupName)
+CAMEL_KECIL = {"logs", "ecr", "ecs"}
 
 
 def _nama_param(flag: str) -> str:
-    return "".join(b.capitalize() for b in flag.lstrip("-").split("-"))
+    nama = "".join(b.capitalize() for b in flag.lstrip("-").split("-"))
+    return NAMA_KHUSUS.get(nama, nama)
+
+
+def _atribut(teks: str) -> dict[str, str]:
+    """"AttributeKey=EventSource,AttributeValue=lambda.amazonaws.com" -> dict tanpa Values."""
+    return dict(bagian.partition("=")[::2] for bagian in teks.split(","))
 
 
 def _pasangan(teks: str) -> dict[str, Any]:
-    """"Name=tag:nim,Values=1,2" -> {"Name": "tag:nim", "Values": ["1", "2"]}."""
+    """"Name=tag:nim,Values=1,2" -> {"Name": "tag:nim", "Values": ["1", "2"]};
+    "Key=Name,Option=BeginsWith,Values=/a" -> {"Key": "Name", "Option": "BeginsWith", "Values": ["/a"]}."""
     kepala, _, nilai = teks.partition(",Values=")
-    kunci, _, isi = kepala.partition("=")
-    return {kunci: isi, "Values": [v for v in nilai.split(",") if v]}
+    hasil: dict[str, Any] = {}
+    for bagian in kepala.split(","):
+        kunci, _, isi = bagian.partition("=")
+        hasil[kunci] = isi
+    hasil["Values"] = [v for v in nilai.split(",") if v]
+    return hasil
 
 
 def urai(args: tuple[str, ...]) -> dict[str, Any]:
@@ -44,8 +60,10 @@ def urai(args: tuple[str, ...]) -> dict[str, Any]:
             nilai.append(args[i])
             i += 1
         nama = _nama_param(flag)
-        if nama in ("Filters", "Filter", "TagFilters"):
+        if nama in ("Filters", "Filter", "TagFilters", "ParameterFilters"):
             params[nama] = [_pasangan(v) for v in nilai]
+        elif nama == "LookupAttributes":
+            params[nama] = [_atribut(v) for v in nilai]
         elif nama in DAFTAR:
             params[nama] = nilai
         else:
@@ -83,6 +101,8 @@ class Boto3Api:
         klien = self._client(layanan)
         metode = operasi.replace("-", "_")
         params = urai(sisa)
+        if layanan in CAMEL_KECIL:
+            params = {k[:1].lower() + k[1:]: v for k, v in params.items()}
         try:
             if klien.can_paginate(metode):
                 hasil = _gabung(list(klien.get_paginator(metode).paginate(**params)))
@@ -91,3 +111,10 @@ class Boto3Api:
         except Exception as exc:  # botocore.exceptions.ClientError dan sejenisnya
             raise GalatAws(f"{layanan} {operasi}: {exc}") from exc
         return json.loads(json.dumps(hasil, default=str))
+
+    def baca_awal(self, bucket: str, key: str, n: int) -> bytes:
+        try:
+            r = self._client("s3api").get_object(Bucket=bucket, Key=key, Range=f"bytes=0-{n - 1}")
+            return r["Body"].read(n)
+        except Exception as exc:
+            raise GalatAws(f"s3 get-object: {exc}") from exc
