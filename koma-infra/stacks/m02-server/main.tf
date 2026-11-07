@@ -64,6 +64,42 @@ resource "aws_ami_from_instance" "api" {
 
 # TODO C.1  aws_security_group.api + aws_vpc_security_group_ingress_rule.http_saya
 #           (port 80 hanya dari var.cidr_saya)
+resource "aws_security_group" "api" {
+  name        = "${local.awalan}-api"
+  description = "HTTP koma-api hanya dari komputer praktikan"
+  vpc_id      = data.aws_vpc.bawaan.id
+  tags = {
+    Name  = "${local.awalan}-api"
+    peran = "api"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "http_saya" {
+  security_group_id = aws_security_group.api.id
+  description       = "HTTP dari IP praktikan"
+  cidr_ipv4         = var.cidr_saya
+  ip_protocol       = "tcp"
+  from_port         = 80
+  to_port           = 80
+}
+
 # TODO C.2  aws_instance.api : dari AMI sendiri, IP publik, SG api, tag peran/versi
+
+resource "aws_instance" "api" {
+  ami                         = aws_ami_from_instance.api.id
+  instance_type               = "t3.micro"
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.api.id]
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  tags = {
+    Name  = "${local.awalan}-api"
+    peran = "api"
+    versi = var.versi
+  }
+}
 
 # Latihan 2.1: aws_instance.goreng (count = var.bandingkan_goreng ? 1 : 0)
