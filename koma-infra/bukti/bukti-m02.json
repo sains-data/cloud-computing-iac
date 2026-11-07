@@ -6,7 +6,7 @@
   "region": "ap-southeast-2",
   "akun_sidik": "88ad5ca765627ae1",
   "modul": "m02",
-  "dibuat": "2026-11-07T18:08:01Z",
+  "dibuat": "2026-11-07T18:10:18Z",
   "sumber": "lokal",
   "hasil": [
     {
@@ -103,6 +103,26 @@
     },
     {
       "waktu": "2026-11-07T18:08:01Z",
+      "aktif": false,
+      "instance": {},
+      "image": [],
+      "api": null,
+      "yatim": 0,
+      "cek": {
+        "instance_ada": false,
+        "dikelola_kode": false,
+        "tag_pemilik": false,
+        "image_terbit": false,
+        "api_dari_image": false,
+        "api_sehat": false,
+        "pembangun_dari_publik": false,
+        "versi_cocok": false,
+        "sg_terbatas": false,
+        "nama_konvensi": false
+      }
+    },
+    {
+      "waktu": "2026-11-07T18:10:18Z",
       "aktif": false,
       "instance": {},
       "image": [],
